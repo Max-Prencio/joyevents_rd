@@ -5,3 +5,11 @@
 _tmp_trace.png
 vanilla_ravioli.zip
 fonts/
+node_modules/
+dist/
+.env
+.env.local
+.vercel
+*.pdf
+vite.config.js.timestamp-*.mjs
+/images/
