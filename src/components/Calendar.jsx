@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { CalendarCheck, CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
-import { FORM_BOOKING_URL, WHATSAPP_NUMBER } from '../config'
+import { WHATSAPP_NUMBER, WHATSAPP_DISPLAY } from '../config'
 import { SLOTS as SLOT_DEFS } from '../slots'
 
 const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
@@ -36,6 +36,7 @@ export default function Calendar() {
   const EMPTY_FORM = { nombre:'', apellido:'', whatsapp:'', email:'', tipo:'', fecha:'', mensaje:'' }
   const [form, setForm] = useState(EMPTY_FORM)
   const [status, setStatus] = useState('idle') // idle | sending | success | error
+  const [errorMsg, setErrorMsg] = useState('')
 
   const [availSlots, setAvailSlots] = useState(SLOTS)
   const [availLoading, setAvailLoading] = useState(false)
@@ -69,38 +70,29 @@ export default function Calendar() {
 
   const handleSubmit = async e => {
     e.preventDefault()
-    const isConfigured = !FORM_BOOKING_URL.includes('BOOKING_FORM_ID')
 
-    if (!isConfigured) {
-      const msg = encodeURIComponent(
-        `Hola Joy Events 🌸 Quiero reservar una consulta!\n` +
-        `Nombre: ${form.nombre} ${form.apellido}\n` +
-        `WhatsApp: ${form.whatsapp}\n` +
-        `Email: ${form.email}\n` +
-        `Tipo de evento: ${form.tipo || 'No especificado'}\n` +
-        `Fecha consulta: ${fechaSeleccionada}\n` +
-        `Fecha estimada del evento: ${form.fecha || 'Por definir'}\n\n` +
-        `${form.mensaje}`
-      )
-      window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`, '_blank')
+    if (!selDay || !selSlot) {
+      setStatus('error')
+      setErrorMsg('Selecciona una fecha y un horario antes de solicitar la llamada.')
       return
     }
 
     setStatus('sending')
     try {
-      const res = await fetch(FORM_BOOKING_URL, {
+      const res = await fetch('/api/request-call', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          nombre:          `${form.nombre} ${form.apellido}`,
-          email:           form.email,
-          whatsapp:        form.whatsapp,
-          tipo_evento:     form.tipo,
-          fecha_consulta:  fechaSeleccionada,
-          fecha_evento:    form.fecha,
-          mensaje:         form.mensaje,
+          nombre:         `${form.nombre} ${form.apellido}`,
+          email:          form.email,
+          whatsapp:       form.whatsapp,
+          tipo:           form.tipo,
+          fechaConsulta:  fechaSeleccionada,
+          fechaEvento:    form.fecha,
+          mensaje:        form.mensaje,
         }),
       })
+      const data = await res.json().catch(() => ({}))
       if (res.ok) {
         setStatus('success')
         setForm(EMPTY_FORM)
@@ -108,10 +100,26 @@ export default function Calendar() {
         setSlot(null)
       } else {
         setStatus('error')
+        setErrorMsg(data.error || 'Error al enviar. Por favor intenta de nuevo.')
       }
     } catch {
       setStatus('error')
+      setErrorMsg('Error al enviar. Por favor intenta de nuevo.')
     }
+  }
+
+  const whatsappFallback = () => {
+    const msg = encodeURIComponent(
+      `Hola Joy Events 🌸 Quiero reservar una consulta!\n` +
+      `Nombre: ${form.nombre} ${form.apellido}\n` +
+      `WhatsApp: ${form.whatsapp}\n` +
+      `Email: ${form.email}\n` +
+      `Tipo de evento: ${form.tipo || 'No especificado'}\n` +
+      `Fecha consulta: ${fechaSeleccionada}\n` +
+      `Fecha estimada del evento: ${form.fecha || 'Por definir'}\n\n` +
+      `${form.mensaje}`
+    )
+    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${msg}`, '_blank')
   }
 
   return (
@@ -198,7 +206,8 @@ export default function Calendar() {
                 <CheckCircle size={52} style={{ color: 'var(--orange)', marginBottom: 16 }} />
                 <h4 style={{ fontFamily: 'var(--serif)', fontSize: 22, marginBottom: 8 }}>¡Solicitud enviada!</h4>
                 <p style={{ color: 'var(--gray)', fontSize: 14, lineHeight: 1.7 }}>
-                  Nos pondremos en contacto vía WhatsApp en menos de 24 horas para confirmar tu llamada.
+                  Le avisamos a Joy Events sobre tu solicitud. Te llegará un correo confirmando si tu
+                  llamada fue aprobada para la fecha y hora elegidas.
                 </p>
                 <button
                   type="button"
@@ -220,7 +229,12 @@ export default function Calendar() {
                 {status === 'error' && (
                   <div className="form-error-banner" style={{ marginBottom: 12, background: 'rgba(239,68,68,0.08)', color: '#ef4444', borderColor: 'rgba(239,68,68,0.2)' }}>
                     <AlertCircle size={16} />
-                    <span>Error al enviar. Por favor intenta de nuevo.</span>
+                    <span>
+                      {errorMsg}{' '}
+                      <button type="button" onClick={whatsappFallback} style={{ color: '#ef4444', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', padding: 0, font: 'inherit' }}>
+                        Escríbenos por WhatsApp
+                      </button>
+                    </span>
                   </div>
                 )}
 
@@ -281,9 +295,9 @@ export default function Calendar() {
             <div className="calendar-note">
               <CalendarCheck size={18} style={{ color: 'var(--orange)', flexShrink: 0, marginTop: 2 }} />
               <span>
-                <strong>Confirmación por email:</strong> Recibirás una confirmación a tu correo y también nos pondremos
-                en contacto vía WhatsApp en menos de 24 horas. También puedes escribirnos directamente a{' '}
-                <strong>joyeventsrd@gmail.com</strong>.
+                <strong>Confirmación por email:</strong> Joy Events revisará tu solicitud y recibirás un correo
+                confirmando si la llamada fue aprobada para la fecha elegida. También puedes contactarnos
+                directamente al <strong>{WHATSAPP_DISPLAY}</strong> o a <strong>joyeventsrd@gmail.com</strong>.
               </span>
             </div>
           </div>

@@ -1,6 +1,6 @@
 import { Smartphone, Mail, MapPin, Send, CheckCircle, AlertCircle } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
-import { FORM_CONTACT_URL, WHATSAPP_NUMBER } from '../config'
+import { FORM_CONTACT_URL, WHATSAPP_NUMBER, WHATSAPP_DISPLAY } from '../config'
 
 const EMPTY = { name:'', email:'', whatsapp:'', tipo:'', mensaje:'' }
 
@@ -76,7 +76,7 @@ export default function Contact() {
               convertir tu visión en una realidad inolvidable.
             </p>
             {[
-              { icon: <Smartphone size={20} />, title: 'WhatsApp',  value: '+1 (849) 123-4567' },
+              { icon: <Smartphone size={20} />, title: 'WhatsApp',  value: WHATSAPP_DISPLAY },
               { icon: <Mail size={20} />,       title: 'Email',     value: 'joyeventsrd@gmail.com' },
               { icon: <MapPin size={20} />,     title: 'Ubicación', value: 'Santo Domingo, República Dominicana' },
             ].map(d => (
