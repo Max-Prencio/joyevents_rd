@@ -43,10 +43,17 @@ const items = [
   { src: '/images/wedding/night/night-06-abrazo-invitadas.webp',  cat: 'boda', wide: false, type: 'Recepción', caption: 'Abrazos de celebración', alt: 'Abrazo emotivo entre invitadas tras el lanzamiento del ramo' },
   { src: '/images/wedding/night/night-07-novia-cantando.webp',    cat: 'boda', wide: true,  type: 'Recepción', caption: 'La celebración continúa', alt: 'La novia cantando junto a sus damas de honor en la recepción' },
   { src: '/images/wedding/night/night-08-brindis-grupal.webp',    cat: 'boda', wide: true,  type: 'Recepción', caption: 'Un brindis por el amor', alt: 'Brindis grupal de la novia y sus damas de honor con lentes de corazón' },
-  // Pre-boda
-  { src: 'https://images.pixieset.com/54390439/0619163de4fd6ebe7b9fccec3da957cc-cover.JPG',   cat: 'preboda', wide: true,  type: 'Sesión Pre-boda', caption: 'Arihanna & Raymer — Antes del sí' },
-  { src: 'https://images.pixieset.com/67964079/37fbbb3c6dc2ff07d68877370e3e0cd5-cover.JPG',   cat: 'preboda', wide: false, type: 'Sesión Pre-boda', caption: 'La anticipación' },
-  { src: 'https://images.pixieset.com/67964079/0b9fca326b50d06fe63f63877ad8e2b6-large.JPG',   cat: 'preboda', wide: false, type: 'Sesión Pre-boda', caption: 'Amor en cada mirada' },
+  // Pre-boda — Arihanna & Raymer
+  { src: '/images/wedding/pre-boda/preboda-07-torii-rojo.webp',         cat: 'preboda', wide: false, type: 'Sesión Pre-boda', caption: 'Arihanna & Raymer — Antes del sí', alt: 'Los novios caminando de la mano bajo un torii rojo en un jardín japonés' },
+  { src: '/images/wedding/pre-boda/preboda-01-abrazo-bosque.webp',      cat: 'preboda', wide: false, type: 'Sesión Pre-boda', caption: 'Un abrazo en el bosque', alt: 'Los novios abrazados de espaldas en medio del bosque' },
+  { src: '/images/wedding/pre-boda/preboda-02-frente-frente.webp',      cat: 'preboda', wide: false, type: 'Sesión Pre-boda', caption: 'A punto del beso', alt: 'Los novios frente a frente a punto de besarse' },
+  { src: '/images/wedding/pre-boda/preboda-03-ramo-detalle.webp',       cat: 'preboda', wide: false, type: 'Sesión Pre-boda', caption: 'Detalles que enamoran', alt: 'Primer plano del ramo de flores de la sesión pre-boda' },
+  { src: '/images/wedding/pre-boda/preboda-04-caminando-sendero.webp',  cat: 'preboda', wide: false, type: 'Sesión Pre-boda', caption: 'La anticipación', alt: 'Los novios caminando de la mano por un sendero arbolado' },
+  { src: '/images/wedding/pre-boda/preboda-05-retrato-bambu.webp',      cat: 'preboda', wide: false, type: 'Sesión Pre-boda', caption: 'Amor en cada mirada', alt: 'Retrato de la novia sonriendo entre un bosque de bambú' },
+  { src: '/images/wedding/pre-boda/preboda-06-abrazo-bambu.webp',       cat: 'preboda', wide: false, type: 'Sesión Pre-boda', caption: 'Rodeados de naturaleza', alt: 'Los novios abrazados entre el bosque de bambú' },
+  { src: '/images/wedding/pre-boda/preboda-08-paseo-lago.webp',         cat: 'preboda', wide: false, type: 'Sesión Pre-boda', caption: 'Un paseo junto al lago', alt: 'Los novios caminando de la mano junto a un lago' },
+  { src: '/images/wedding/pre-boda/preboda-09-riendo-picnic.webp',      cat: 'preboda', wide: true,  type: 'Sesión Pre-boda', caption: 'Momentos de complicidad', alt: 'Los novios riendo juntos durante un picnic en el jardín' },
+  { src: '/images/wedding/pre-boda/preboda-10-anillo-compromiso.webp',  cat: 'preboda', wide: false, type: 'Sesión Pre-boda', caption: 'El anillo que lo empezó todo', alt: 'Los novios mostrando el anillo de compromiso' },
 ]
 
 const filters = [
