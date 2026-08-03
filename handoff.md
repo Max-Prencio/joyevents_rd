@@ -1,6 +1,6 @@
 # Joy Events RD — Handoff / Memoria de proyecto
 
-Última actualización: 2026-08-01
+Última actualización: 2026-08-03
 
 ## Resumen del proyecto
 Sitio web de Joy Events RD (planificación de bodas), migrado de un HTML monolítico a
@@ -19,31 +19,74 @@ Vite + React + Tailwind CSS. Desplegado en producción en Vercel:
 
 ## Features implementadas
 
-### 1. Calendario de citas con disponibilidad real (Google Calendar)
+### 1. Calendario de citas con disponibilidad real (Google Calendar) — ✅ EN VIVO
 - `src/components/Calendar.jsx`: al seleccionar fecha, hace fetch a `/api/availability?date=YYYY-MM-DD`
   y marca/deshabilita horarios ya ocupados según el Google Calendar de joyeventsrd@gmail.com.
+  También deshabilita visualmente fines de semana y feriados en el propio selector de días.
 - `src/slots.js`: horarios fijos (9, 10, 11am, 2, 3, 4pm).
-- `api/availability.js`: función serverless de Vercel; usa `googleapis` (Free/Busy API) con
-  credenciales de cuenta de servicio de Google Cloud. Zona horaria fija `America/Santo_Domingo` (-04:00, sin DST).
+- `api/availability.js` delega toda la lógica a `api/_lib/scheduling.js` (ver sección 4). Zona
+  horaria fija `America/Santo_Domingo` (-04:00, sin DST).
   - Si faltan credenciales (`GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_PRIVATE_KEY`, `GOOGLE_CALENDAR_ID`),
     degrada con gracia: devuelve `configured: false` y todos los horarios como disponibles (no rompe el sitio).
+- **Credenciales ya configuradas en Vercel y funcionando en producción** (cuenta de servicio
+  `joy-events-calendar@joy-events-rd.iam.gserviceaccount.com`, proyecto GCP `joy-events-rd`,
+  compartida con el calendario "JOY EVENTS RD" con permiso "Make changes and see all event details").
+  - **Bug corregido**: `googleapis ^173` eliminó el constructor posicional legacy de `google.auth.JWT`;
+    había que pasar `new google.auth.JWT({ email, key, scopes })` (objeto), no argumentos posicionales.
+    El código viejo producía peticiones sin autenticar (`403 unregistered callers`) — ver
+    `api/_lib/googleAuth.js`.
 
-### 2. Flujo de "Solicitar Llamada" por correo (sin base de datos)
+### 2. Flujo de "Solicitar Llamada" por correo (sin base de datos) — ✅ EN VIVO
 - Al enviar el formulario del calendario, `Calendar.jsx` hace POST a `/api/request-call.js`.
-- `api/request-call.js` genera un token firmado (HMAC-SHA256, `api/_lib/token.js`, secreto
-  `REQUEST_TOKEN_SECRET`, expira en 14 días) y envía un correo a joyeventsrd@gmail.com (vía
-  `api/_lib/mailer.js`, Nodemailer + Gmail SMTP con App Password) con botones "Aceptar" / "Rechazar".
+- `api/request-call.js` valida disponibilidad (ver sección 4), genera un token firmado
+  (HMAC-SHA256, `api/_lib/token.js`, secreto `REQUEST_TOKEN_SECRET`, expira en 14 días) y envía un
+  correo a joyeventsrd@gmail.com (vía `api/_lib/mailer.js`, Nodemailer + Gmail SMTP con App
+  Password) con botones "Aceptar" / "Rechazar".
 - Esos botones apuntan a `api/respond-call.js` (GET), que verifica el token, envía un correo de
-  vuelta al solicitante confirmando aprobación o rechazo, y muestra una página HTML de confirmación.
+  vuelta al solicitante confirmando aprobación o rechazo, confirma o libera el "hold" del
+  calendario (ver sección 4), y muestra una página HTML de confirmación.
   - Mensaje de aprobación incluye: "nos pondremos en contacto contigo, para más información
     contáctanos al +1 (809) 360-8567".
 - Si faltan credenciales de Gmail (`GMAIL_USER`, `GMAIL_APP_PASSWORD`) o `REQUEST_TOKEN_SECRET`,
   ambos endpoints degradan con gracia (error controlado 400/500, sin crash) y el frontend muestra
   fallback a WhatsApp (`wa.me/18093608567`).
+- **Credenciales ya configuradas en Vercel y funcionando en producción.**
 - Limitación aceptada: no hay persistencia de "ya respondido", así que hacer clic dos veces en el
-  mismo link de aceptar/rechazar reenvía un correo duplicado. No es prioritario arreglarlo.
+  mismo link de aceptar/rechazar reenvía un correo duplicado (o intenta liberar/confirmar un evento
+  ya modificado — no rompe nada, solo es redundante). No es prioritario arreglarlo.
 
-### 3. Galería "Momentos que hablan por sí solos" (Portfolio.jsx)
+### 3. Reglas de agenda: sin choques, tope diario, sin fines de semana/feriados — ✅ EN VIVO
+Implementado a pedido explícito del usuario actuando como product owner (2026-08-03). Toda la
+lógica vive en `api/_lib/scheduling.js`, usado por `availability.js`, `request-call.js` y
+`respond-call.js`:
+- **Sin doble-reserva**: al *solicitar* una llamada (no solo al aceptarla) se crea de inmediato un
+  evento "hold" en el calendario con `extendedProperties.private.joyStatus = 'pending'`. Esto
+  bloquea ese horario para cualquier otra persona desde el momento de la solicitud, no solo tras
+  la aprobación. Si se rechaza, el hold se borra (`releaseSlot`); si se acepta, se confirma
+  (`confirmSlot`, marca `joyStatus = 'accepted'`) en el mismo evento.
+- **Máximo 3 llamadas aceptadas por día**: si un día ya tiene 3 eventos con
+  `joyStatus: 'accepted'`, el día completo se cierra a nuevas solicitudes aunque queden horarios
+  libres (`reason: 'max'`).
+- **Sin fines de semana**: sábado y domingo bloqueados por defecto, tanto en la UI (días
+  deshabilitados en el calendario) como en el backend (`isWeekend()` en `src/holidays.js`,
+  válida como fuente de verdad en `request-call.js`).
+- **Sin feriados no laborables de RD**: lista estática en `src/holidays.js` (`DR_HOLIDAYS`,
+  compartida por frontend y backend) con los 12 feriados oficiales 2026 según el Ministerio de
+  Trabajo (Ley 139-97). **Ojo**: el calendario público de Google (`es.do#holiday@group.v.calendar.google.com`)
+  incluye fechas que NO son feriados no laborables (Día de la Madre, Día del Padre, Noche Buena,
+  Noche Vieja) — por eso se usa una lista propia curada, no ese calendario directamente.
+  **Hay que actualizar `DR_HOLIDAYS` cada año** cuando el Ministerio de Trabajo publique el
+  calendario oficial siguiente.
+- Validado end-to-end contra producción real (vía `curl` directo a `/api/request-call`): doble
+  solicitud del mismo horario → 409; fin de semana → 409; feriado laborable (27 feb, viernes) →
+  409; 4ta solicitud con 3 ya aceptadas ese día → 409. Todo limpio después (sin eventos de prueba
+  en el calendario real).
+- **Bug corregido durante esta implementación**: `request-call.js` referenciaba una variable
+  `hour` inexistente (era `hora`) al crear el hold — causaba 500 en toda solicitud con horario.
+  También se corrigió que la liberación del hold en el path de error no se esperaba (`await`),
+  lo que podía dejar un bloqueo huérfano si la función serverless terminaba antes de completarse.
+
+### 5. Galería "Momentos que hablan por sí solos" (Portfolio.jsx)
 Curada a mano a partir de ~600 fotos raw (proceso: contact sheets con Python/Pillow local, solo
 para revisión visual — NO es dependencia del proyecto npm).
 - **Getting Ready** (10 fotos): `public/images/wedding/getting-ready/`
@@ -58,23 +101,23 @@ para revisión visual — NO es dependencia del proyecto npm).
 - Quedan 33 fotos de pre-boda sin usar en
   `images/arihannayraymerpreboda-photo-download-1of1/Highlights/` por si se pide más variedad ahí.
 
-## Configuración pendiente en Vercel (env vars)
-El sitio está en producción funcionando en "modo degradado" (WhatsApp fallback) porque aún faltan
-estas variables de entorno en el dashboard de Vercel
-(`maxwwelteam/joyevents-rd` → Settings → Environment Variables):
+## Configuración en Vercel (env vars) — ✅ TODAS CONFIGURADAS
+El sitio corre en producción con credenciales reales (ya no está en modo degradado). Variables
+activas en `maxwwelteam/joyevents-rd` → Settings → Environment Variables:
 
-- `GOOGLE_SERVICE_ACCOUNT_EMAIL`
+- `GOOGLE_SERVICE_ACCOUNT_EMAIL` = `joy-events-calendar@joy-events-rd.iam.gserviceaccount.com`
 - `GOOGLE_PRIVATE_KEY`
-- `GOOGLE_CALENDAR_ID` (default sugerido: `joyeventsrd@gmail.com`)
-- `GMAIL_USER` (`joyeventsrd@gmail.com`)
-- `GMAIL_APP_PASSWORD` (App Password de Gmail, requiere verificación en 2 pasos activada)
-- `REQUEST_TOKEN_SECRET` (aleatorio, ej. `openssl rand -hex 32`)
+- `GOOGLE_CALENDAR_ID` = `joyeventsrd@gmail.com`
+- `GMAIL_USER` = `joyeventsrd@gmail.com`
+- `GMAIL_APP_PASSWORD`
+- `REQUEST_TOKEN_SECRET`
 
 Ver `.env.example` en la raíz del proyecto para más detalle de cada una.
 
-Pasos para Google Calendar: crear proyecto en Google Cloud Console → habilitar Calendar API →
-crear cuenta de servicio → generar clave JSON → compartir el calendario de joyeventsrd@gmail.com
-con el `client_email` de la cuenta de servicio.
+Cuenta de servicio de Google Cloud: proyecto `joy-events-rd`, cuenta de servicio
+`joy-events-calendar`, compartida en Google Calendar (calendario "JOY EVENTS RD") con permiso
+"Make changes and see all event details" (necesario para leer Y crear eventos, no solo
+"ver disponibilidad").
 
 ## Decisiones de arquitectura clave (el "por qué")
 - **Vercel sobre Netlify**: usuario pidió explícitamente "rápido y gratis"; Vercel + GitHub
@@ -100,8 +143,7 @@ con el `client_email` de la cuenta de servicio.
 ## Tareas pendientes / próximos pasos
 1. Confirmar con el usuario si tiene fotos de **Post Boda** en algún otro lugar (USB, carpeta,
    link externo) para completar esa categoría de la galería.
-2. Cuando el usuario provea las credenciales de Google Calendar + Gmail App Password, añadirlas
-   como Environment Variables en Vercel para activar disponibilidad real y el flujo de
-   aprobación de llamadas por correo en producción.
-3. Cuando el usuario tenga presupuesto, conectar el dominio `joyevents.do` en Vercel
+2. Cuando el usuario tenga presupuesto, conectar el dominio `joyevents.do` en Vercel
    (Project → Domains).
+3. Actualizar `src/holidays.js` (`DR_HOLIDAYS`) con el calendario oficial de feriados 2027 del
+   Ministerio de Trabajo cuando se publique (normalmente a fines de 2026).
