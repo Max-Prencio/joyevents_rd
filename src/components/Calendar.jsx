@@ -67,6 +67,8 @@ export default function Calendar() {
   const isToday = d => d && yr === today.getFullYear() && mo === today.getMonth() && d === today.getDate()
 
   const fechaSeleccionada = selDay ? `${selDay}/${mo+1}/${yr}${selSlot ? ` a las ${selSlot}` : ''}` : 'No seleccionada'
+  const fechaISO = selDay ? `${yr}-${String(mo + 1).padStart(2, '0')}-${String(selDay).padStart(2, '0')}` : null
+  const selHour = selSlot ? SLOT_DEFS.find(s => s.label === selSlot)?.hour ?? null : null
 
   const handleSubmit = async e => {
     e.preventDefault()
@@ -88,6 +90,8 @@ export default function Calendar() {
           whatsapp:       form.whatsapp,
           tipo:           form.tipo,
           fechaConsulta:  fechaSeleccionada,
+          fechaISO:       fechaISO,
+          hora:           selHour,
           fechaEvento:    form.fecha,
           mensaje:        form.mensaje,
         }),

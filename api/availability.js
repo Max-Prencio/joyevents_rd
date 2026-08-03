@@ -1,15 +1,6 @@
 import { google } from 'googleapis'
 import { SLOTS } from '../src/slots.js'
-
-// República Dominicana no observa horario de verano — offset fijo.
-const TZ_OFFSET = '-04:00'
-
-function getAuth() {
-  const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL
-  const key = (process.env.GOOGLE_PRIVATE_KEY || '').replace(/\\n/g, '\n')
-  if (!email || !key) return null
-  return new google.auth.JWT(email, null, key, ['https://www.googleapis.com/auth/calendar.readonly'])
-}
+import { getGoogleAuth, TZ_OFFSET } from './_lib/googleAuth.js'
 
 function overlaps(aStart, aEnd, bStart, bEnd) {
   return aStart < bEnd && bStart < aEnd
@@ -24,7 +15,7 @@ export default async function handler(req, res) {
   }
 
   const calendarId = process.env.GOOGLE_CALENDAR_ID
-  const auth = getAuth()
+  const auth = getGoogleAuth()
 
   // Sin credenciales configuradas todavía: modo degradado, todos los horarios se muestran disponibles.
   if (!auth || !calendarId) {

@@ -1,5 +1,6 @@
 import { verifyToken } from './_lib/token.js'
 import { sendMail } from './_lib/mailer.js'
+import { createCalendarEvent } from './_lib/calendar.js'
 import { CONTACT_PHONE } from './_lib/constants.js'
 
 function page(title, body) {
@@ -30,7 +31,7 @@ export default async function handler(req, res) {
     return
   }
 
-  const { nombre, email, fechaConsulta } = payload
+  const { nombre, email, whatsapp, tipo, fechaConsulta, fechaISO, hora, mensaje } = payload
   const accepted = decision === 'accept'
 
   try {
@@ -55,6 +56,25 @@ export default async function handler(req, res) {
           </div>
         `,
     })
+
+    if (accepted) {
+      try {
+        await createCalendarEvent({
+          summary: `Llamada Joy Events — ${nombre}${tipo ? ` (${tipo})` : ''}`,
+          description: [
+            `Cliente: ${nombre}`,
+            `Email: ${email}`,
+            whatsapp ? `WhatsApp: ${whatsapp}` : null,
+            tipo ? `Tipo de evento: ${tipo}` : null,
+            mensaje ? `Mensaje: ${mensaje}` : null,
+          ].filter(Boolean).join('\n'),
+          date: fechaISO,
+          hour: hora,
+        })
+      } catch (err) {
+        console.error('Error creando evento en Google Calendar:', err)
+      }
+    }
 
     res.status(200).send(
       accepted

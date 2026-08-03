@@ -13,7 +13,7 @@ export default async function handler(req, res) {
     return
   }
 
-  const { nombre, email, whatsapp, tipo, fechaConsulta, fechaEvento, mensaje } = req.body ?? {}
+  const { nombre, email, whatsapp, tipo, fechaConsulta, fechaISO, hora, fechaEvento, mensaje } = req.body ?? {}
 
   if (!nombre || !email || !fechaConsulta) {
     res.status(400).json({ error: 'Faltan datos obligatorios.' })
@@ -21,7 +21,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const token = createToken({ nombre, email, whatsapp, tipo, fechaConsulta, fechaEvento, mensaje })
+    const token = createToken({ nombre, email, whatsapp, tipo, fechaConsulta, fechaISO, hora, fechaEvento, mensaje })
     const site = baseUrl(req)
     const acceptUrl = `${site}/api/respond-call?token=${encodeURIComponent(token)}&decision=accept`
     const declineUrl = `${site}/api/respond-call?token=${encodeURIComponent(token)}&decision=decline`
