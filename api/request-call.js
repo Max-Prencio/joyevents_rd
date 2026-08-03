@@ -1,10 +1,18 @@
 import { createToken } from './_lib/token.js'
 import { sendMail } from './_lib/mailer.js'
+import { getAvailability, holdSlot, releaseSlot } from './_lib/scheduling.js'
+import { SLOTS } from '../src/slots.js'
 
 function baseUrl(req) {
   const proto = req.headers['x-forwarded-proto'] || 'https'
   const host = req.headers['x-forwarded-host'] || req.headers.host
   return `${proto}://${host}`
+}
+
+const REASON_MESSAGES = {
+  weekend: 'No se pueden agendar consultas los fines de semana. Por favor elige un día entre semana.',
+  holiday: 'Ese día es feriado en República Dominicana. Por favor elige otra fecha.',
+  max: 'Ya se alcanzó el máximo de consultas para ese día. Por favor elige otra fecha.',
 }
 
 export default async function handler(req, res) {
@@ -20,8 +28,39 @@ export default async function handler(req, res) {
     return
   }
 
+  let calendarEventId = null
+
   try {
-    const token = createToken({ nombre, email, whatsapp, tipo, fechaConsulta, fechaISO, hora, fechaEvento, mensaje })
+    if (fechaISO && hora != null) {
+      const { available, reason, configured } = await getAvailability(fechaISO)
+      const slotLabel = SLOTS.find(s => s.hour === hora)?.label
+
+      if (reason && REASON_MESSAGES[reason]) {
+        res.status(409).json({ error: REASON_MESSAGES[reason] })
+        return
+      }
+      if (!slotLabel || !available.includes(slotLabel)) {
+        res.status(409).json({ error: 'Ese horario ya no está disponible. Por favor elige otro horario.' })
+        return
+      }
+
+      if (configured) {
+        calendarEventId = await holdSlot({
+          date: fechaISO,
+          hour,
+          summary: `(Pendiente) Llamada Joy Events — ${nombre}${tipo ? ` (${tipo})` : ''}`,
+          description: [
+            `Cliente: ${nombre}`,
+            `Email: ${email}`,
+            whatsapp ? `WhatsApp: ${whatsapp}` : null,
+            tipo ? `Tipo de evento: ${tipo}` : null,
+            mensaje ? `Mensaje: ${mensaje}` : null,
+          ].filter(Boolean).join('\n'),
+        })
+      }
+    }
+
+    const token = createToken({ nombre, email, whatsapp, tipo, fechaConsulta, fechaISO, hora, fechaEvento, mensaje, calendarEventId })
     const site = baseUrl(req)
     const acceptUrl = `${site}/api/respond-call?token=${encodeURIComponent(token)}&decision=accept`
     const declineUrl = `${site}/api/respond-call?token=${encodeURIComponent(token)}&decision=decline`
@@ -50,6 +89,9 @@ export default async function handler(req, res) {
     res.status(200).json({ ok: true })
   } catch (err) {
     console.error('Error enviando solicitud de llamada:', err)
+    if (calendarEventId) {
+      releaseSlot(calendarEventId).catch(e => console.error('Error liberando hold tras fallo:', e))
+    }
     res.status(500).json({ error: 'No se pudo enviar la solicitud. Intenta de nuevo o escríbenos por WhatsApp.' })
   }
 }

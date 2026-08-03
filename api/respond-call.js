@@ -1,6 +1,7 @@
 import { verifyToken } from './_lib/token.js'
 import { sendMail } from './_lib/mailer.js'
 import { createCalendarEvent } from './_lib/calendar.js'
+import { confirmSlot, releaseSlot } from './_lib/scheduling.js'
 import { CONTACT_PHONE } from './_lib/constants.js'
 
 function page(title, body) {
@@ -31,7 +32,7 @@ export default async function handler(req, res) {
     return
   }
 
-  const { nombre, email, whatsapp, tipo, fechaConsulta, fechaISO, hora, mensaje } = payload
+  const { nombre, email, whatsapp, tipo, fechaConsulta, fechaISO, hora, mensaje, calendarEventId } = payload
   const accepted = decision === 'accept'
 
   try {
@@ -57,23 +58,30 @@ export default async function handler(req, res) {
         `,
     })
 
-    if (accepted) {
-      try {
-        await createCalendarEvent({
-          summary: `Llamada Joy Events — ${nombre}${tipo ? ` (${tipo})` : ''}`,
-          description: [
-            `Cliente: ${nombre}`,
-            `Email: ${email}`,
-            whatsapp ? `WhatsApp: ${whatsapp}` : null,
-            tipo ? `Tipo de evento: ${tipo}` : null,
-            mensaje ? `Mensaje: ${mensaje}` : null,
-          ].filter(Boolean).join('\n'),
-          date: fechaISO,
-          hour: hora,
-        })
-      } catch (err) {
-        console.error('Error creando evento en Google Calendar:', err)
+    const eventFields = {
+      summary: `Llamada Joy Events — ${nombre}${tipo ? ` (${tipo})` : ''}`,
+      description: [
+        `Cliente: ${nombre}`,
+        `Email: ${email}`,
+        whatsapp ? `WhatsApp: ${whatsapp}` : null,
+        tipo ? `Tipo de evento: ${tipo}` : null,
+        mensaje ? `Mensaje: ${mensaje}` : null,
+      ].filter(Boolean).join('\n'),
+    }
+
+    try {
+      if (accepted) {
+        if (calendarEventId) {
+          await confirmSlot(calendarEventId, eventFields)
+        } else {
+          // Compatibilidad: solicitudes creadas antes de que existiera el "hold" de calendario.
+          await createCalendarEvent({ ...eventFields, date: fechaISO, hour: hora })
+        }
+      } else if (calendarEventId) {
+        await releaseSlot(calendarEventId)
       }
+    } catch (err) {
+      console.error('Error actualizando el evento en Google Calendar:', err)
     }
 
     res.status(200).send(

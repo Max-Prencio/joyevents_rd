@@ -2,6 +2,13 @@ import { useState, useEffect, useRef } from 'react'
 import { CalendarCheck, CheckCircle, AlertCircle, Loader2 } from 'lucide-react'
 import { WHATSAPP_NUMBER, WHATSAPP_DISPLAY } from '../config'
 import { SLOTS as SLOT_DEFS } from '../slots'
+import { isDRHoliday, isWeekend as isWeekendDate } from '../holidays'
+
+const REASON_TEXT = {
+  weekend: 'No ofrecemos consultas los fines de semana. Elige un día entre semana.',
+  holiday: 'Ese día es feriado en República Dominicana. Elige otra fecha.',
+  max: 'Ya se alcanzó el máximo de consultas para este día. Prueba otra fecha.',
+}
 
 const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
 const DAYS   = ['Do','Lu','Ma','Mi','Ju','Vi','Sá']
@@ -39,6 +46,7 @@ export default function Calendar() {
   const [errorMsg, setErrorMsg] = useState('')
 
   const [availSlots, setAvailSlots] = useState(SLOTS)
+  const [availReason, setAvailReason] = useState(null)
   const [availLoading, setAvailLoading] = useState(false)
   const [availError, setAvailError] = useState(false)
 
@@ -48,9 +56,10 @@ export default function Calendar() {
     let cancelled = false
     setAvailLoading(true)
     setAvailError(false)
+    setAvailReason(null)
     fetch(`/api/availability?date=${dateStr}`)
       .then(res => { if (!res.ok) throw new Error('request failed'); return res.json() })
-      .then(data => { if (!cancelled) setAvailSlots(data.available ?? SLOTS) })
+      .then(data => { if (!cancelled) { setAvailSlots(data.available ?? SLOTS); setAvailReason(data.reason ?? null) } })
       .catch(() => { if (!cancelled) { setAvailError(true); setAvailSlots(SLOTS) } })
       .finally(() => { if (!cancelled) setAvailLoading(false) })
     return () => { cancelled = true }
@@ -65,6 +74,10 @@ export default function Calendar() {
 
   const isPast = d => d && new Date(yr, mo, d) < new Date(today.getFullYear(), today.getMonth(), today.getDate())
   const isToday = d => d && yr === today.getFullYear() && mo === today.getMonth() && d === today.getDate()
+  const dayISO = d => `${yr}-${String(mo + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`
+  const isWeekend = d => d && isWeekendDate(dayISO(d))
+  const isHoliday = d => d && isDRHoliday(dayISO(d))
+  const isBlocked = d => isPast(d) || isWeekend(d) || isHoliday(d)
 
   const fechaSeleccionada = selDay ? `${selDay}/${mo+1}/${yr}${selSlot ? ` a las ${selSlot}` : ''}` : 'No seleccionada'
   const fechaISO = selDay ? `${yr}-${String(mo + 1).padStart(2, '0')}-${String(selDay).padStart(2, '0')}` : null
@@ -152,9 +165,9 @@ export default function Calendar() {
               {days.map((d, i) => (
                 <button
                   key={i}
-                  className={`cal-day ${!d ? 'empty' : ''} ${isPast(d) ? 'past' : 'available'} ${isToday(d) ? 'today' : ''} ${selDay === d ? 'selected' : ''}`}
-                  onClick={() => { if (d && !isPast(d)) { setSel(d); setSlot(null) } }}
-                  disabled={!d || isPast(d)}
+                  className={`cal-day ${!d ? 'empty' : ''} ${isBlocked(d) ? 'past' : 'available'} ${isToday(d) ? 'today' : ''} ${selDay === d ? 'selected' : ''}`}
+                  onClick={() => { if (d && !isBlocked(d)) { setSel(d); setSlot(null) } }}
+                  disabled={!d || isBlocked(d)}
                 >
                   {d}
                 </button>
@@ -192,7 +205,7 @@ export default function Calendar() {
                       })}
                     </div>
                     {!availError && availSlots.length === 0 && (
-                      <p className="no-slots">No hay horarios disponibles este día. Prueba otra fecha.</p>
+                      <p className="no-slots">{REASON_TEXT[availReason] ?? 'No hay horarios disponibles este día. Prueba otra fecha.'}</p>
                     )}
                   </>
                 )}
