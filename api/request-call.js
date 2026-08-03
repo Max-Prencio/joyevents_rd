@@ -47,7 +47,7 @@ export default async function handler(req, res) {
       if (configured) {
         calendarEventId = await holdSlot({
           date: fechaISO,
-          hour,
+          hour: hora,
           summary: `(Pendiente) Llamada Joy Events — ${nombre}${tipo ? ` (${tipo})` : ''}`,
           description: [
             `Cliente: ${nombre}`,
@@ -90,7 +90,11 @@ export default async function handler(req, res) {
   } catch (err) {
     console.error('Error enviando solicitud de llamada:', err)
     if (calendarEventId) {
-      releaseSlot(calendarEventId).catch(e => console.error('Error liberando hold tras fallo:', e))
+      try {
+        await releaseSlot(calendarEventId)
+      } catch (e) {
+        console.error('Error liberando hold tras fallo:', e)
+      }
     }
     res.status(500).json({ error: 'No se pudo enviar la solicitud. Intenta de nuevo o escríbenos por WhatsApp.' })
   }
