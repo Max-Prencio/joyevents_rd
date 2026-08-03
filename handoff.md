@@ -86,6 +86,37 @@ lógica vive en `api/_lib/scheduling.js`, usado por `availability.js`, `request-
   También se corrigió que la liberación del hold en el path de error no se esperaba (`await`),
   lo que podía dejar un bloqueo huérfano si la función serverless terminaba antes de completarse.
 
+### 4. Animación "El Montaje Perfecto" (TableSetup.jsx) — ⚠️ LOCAL, SIN COMMIT
+Sección agregada entre Services y Portfolio con una animación de scroll tipo "Container Scroll"
+(patrón conocido de Aceternity UI): una tarjeta con foto de mesa de boda que empieza inclinada en
+3D y se aplana/escala a medida que el usuario hace scroll, dentro de un marco tipo laptop.
+- `src/components/ui/container-scroll-animation.jsx`: componente adaptado a JS puro (sin
+  TypeScript, sin `"use client"`) del componente que el usuario pegó directamente. Usa
+  `framer-motion` (`useScroll` + `useTransform`) para animar `rotateX`, `scale` y `translateY` en
+  función del scroll.
+- `src/components/TableSetup.jsx`: usa `ContainerScroll` con copy de marca ("Nuestro Sello" / "El
+  Montaje Perfecto") y la foto `public/images/table-setup/classic.webp` (generada con Google Flow/
+  ImageFX, gratis, y convertida a WebP con Pillow local).
+- `vite.config.js`: se agregó alias `@` → `./src` (convención estándar de este tipo de componente).
+- Se instaló `framer-motion` (pedido explícito del usuario). También está instalado `lenis`
+  (smooth-scroll, pedido explícito) — solo se usa para suavizar el scroll con la rueda del mouse;
+  el intento de hacerlo controlar también los clics de anclas (`<a href="#...">`) tuvo bugs no
+  resueltos (`scrollTo()` saltaba al final de la página o no se movía) y se revirtió — los enlaces
+  de navegación usan el comportamiento nativo del navegador, no Lenis.
+- **Historial de iteraciones descartadas** (por si se retoma el tema): primero se probó con
+  ilustraciones SVG hechas a mano (rechazado, se quería fotorrealismo); luego 3 tarjetas separadas
+  con fotos generadas por IA e inclinación 3D + scroll parallax (rechazado, se quería continuidad
+  de scroll tipo wow-showroom.com/eseagency.ch/bagigia.com, no tarjetas discretas); luego una sola
+  imagen a pantalla completa con pin/sticky + zoom por scroll hecho a mano en CSS/JS (funcionaba,
+  pero se abandonó a medio commit cuando el usuario pidió instalar Lenis y luego dijo "detente" para
+  construir él mismo la animación parallax). La versión actual (`ContainerScroll`) es la que el
+  usuario diseñó/encontró y pidió integrar directamente.
+- Quedan sin usar `public/images/table-setup/modern.webp` y `romantic.webp` (de la iteración de 3
+  tarjetas descartada) — pendiente decidir si se borran antes de commitear.
+- Probado en local con `npm run build` y scroll programático en navegador: la animación funciona
+  correctamente extremo a extremo. **Todavía no se ha hecho commit ni push** — sigue como cambios
+  locales sin confirmar.
+
 ### 5. Galería "Momentos que hablan por sí solos" (Portfolio.jsx)
 Curada a mano a partir de ~600 fotos raw (proceso: contact sheets con Python/Pillow local, solo
 para revisión visual — NO es dependencia del proyecto npm).
@@ -147,3 +178,5 @@ Cuenta de servicio de Google Cloud: proyecto `joy-events-rd`, cuenta de servicio
    (Project → Domains).
 3. Actualizar `src/holidays.js` (`DR_HOLIDAYS`) con el calendario oficial de feriados 2027 del
    Ministerio de Trabajo cuando se publique (normalmente a fines de 2026).
+4. Decidir sobre `modern.webp`/`romantic.webp` sin usar y hacer commit de la animación
+   "El Montaje Perfecto" (sección 4) — pedir confirmación antes de push, como siempre.
