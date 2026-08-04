@@ -845,15 +845,6 @@ section { padding: 100px 0; }
   justify-content: center;
   pointer-events: none;
 }
-.mesa-scroll-scrim {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: min(92%, 820px);
-  height: 320px;
-  background: radial-gradient(ellipse at center, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.22) 55%, transparent 78%);
-}
 .mesa-scroll-item {
   position: absolute;
   top: 50%;
@@ -868,13 +859,13 @@ section { padding: 100px 0; }
   font-family: var(--serif);
   font-size: 52px;
   color: #fff;
-  text-shadow: 0 2px 24px rgba(0,0,0,0.55), 0 1px 3px rgba(0,0,0,0.75);
+  text-shadow: 0 2px 4px rgba(0,0,0,0.9), 0 4px 20px rgba(0,0,0,0.5), 0 0 40px rgba(0,0,0,0.35);
 }
 .mesa-scroll-subtitle {
   font-family: var(--sans);
   font-size: 18px;
   color: #fff;
-  text-shadow: 0 2px 16px rgba(0,0,0,0.55), 0 1px 3px rgba(0,0,0,0.75);
+  text-shadow: 0 2px 4px rgba(0,0,0,0.9), 0 4px 16px rgba(0,0,0,0.5), 0 0 30px rgba(0,0,0,0.35);
 }
 .mesa-scroll-cta {
   pointer-events: auto;
@@ -886,6 +877,5 @@ section { padding: 100px 0; }
 @media (max-width: 768px) {
   .mesa-scroll-headline { font-size: 32px; }
   .mesa-scroll-subtitle { font-size: 15px; }
-  .mesa-scroll-scrim { height: 260px; }
 }
 
