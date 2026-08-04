@@ -76,6 +76,7 @@ export default function MesaScroll() {
         preload="auto"
       />
       <div className="mesa-scroll-overlay">
+        <div className="mesa-scroll-scrim" />
         <h2 ref={headlineRef} className="mesa-scroll-item mesa-scroll-headline">
           Cada Detalle, Perfectamente Orquestado
         </h2>
