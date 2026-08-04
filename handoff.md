@@ -1,6 +1,6 @@
 # Joy Events RD — Handoff / Memoria de proyecto
 
-Última actualización: 2026-08-03
+Última actualización: 2026-08-04
 
 ## Resumen del proyecto
 Sitio web de Joy Events RD (planificación de bodas), migrado de un HTML monolítico a
@@ -8,7 +8,8 @@ Vite + React + Tailwind CSS. Desplegado en producción en Vercel:
 - URL estable: https://joyevents-rd.vercel.app
 - Repo: https://github.com/Max-Prencio/joyevents_rd.git (branch `main`)
 - Proyecto Vercel: `maxwwelteam/joyevents-rd` (auto-deploy on push a `main` vía integración GitHub)
-- Dominio deseado a futuro: `joyevents.do` — el usuario no tiene el dinero todavía, deferido, no urgente.
+- Dominio propio: `joyevents.do` — comprado por el usuario, DNS configurado el 2026-08-04 (ver
+  sección "Dominio propio: joyevents.do" más abajo para el detalle completo de la configuración).
 
 ## Contacto del negocio
 - Teléfono/WhatsApp oficial: **+1 (809) 360-8567**
@@ -86,36 +87,30 @@ lógica vive en `api/_lib/scheduling.js`, usado por `availability.js`, `request-
   También se corrigió que la liberación del hold en el path de error no se esperaba (`await`),
   lo que podía dejar un bloqueo huérfano si la función serverless terminaba antes de completarse.
 
-### 4. Animación "El Montaje Perfecto" (TableSetup.jsx) — ⚠️ LOCAL, SIN COMMIT
-Sección agregada entre Services y Portfolio con una animación de scroll tipo "Container Scroll"
-(patrón conocido de Aceternity UI): una tarjeta con foto de mesa de boda que empieza inclinada en
-3D y se aplana/escala a medida que el usuario hace scroll, dentro de un marco tipo laptop.
-- `src/components/ui/container-scroll-animation.jsx`: componente adaptado a JS puro (sin
-  TypeScript, sin `"use client"`) del componente que el usuario pegó directamente. Usa
-  `framer-motion` (`useScroll` + `useTransform`) para animar `rotateX`, `scale` y `translateY` en
-  función del scroll.
-- `src/components/TableSetup.jsx`: usa `ContainerScroll` con copy de marca ("Nuestro Sello" / "El
-  Montaje Perfecto") y la foto `public/images/table-setup/classic.webp` (generada con Google Flow/
-  ImageFX, gratis, y convertida a WebP con Pillow local).
-- `vite.config.js`: se agregó alias `@` → `./src` (convención estándar de este tipo de componente).
-- Se instaló `framer-motion` (pedido explícito del usuario). También está instalado `lenis`
-  (smooth-scroll, pedido explícito) — solo se usa para suavizar el scroll con la rueda del mouse;
-  el intento de hacerlo controlar también los clics de anclas (`<a href="#...">`) tuvo bugs no
-  resueltos (`scrollTo()` saltaba al final de la página o no se movía) y se revirtió — los enlaces
-  de navegación usan el comportamiento nativo del navegador, no Lenis.
-- **Historial de iteraciones descartadas** (por si se retoma el tema): primero se probó con
-  ilustraciones SVG hechas a mano (rechazado, se quería fotorrealismo); luego 3 tarjetas separadas
-  con fotos generadas por IA e inclinación 3D + scroll parallax (rechazado, se quería continuidad
-  de scroll tipo wow-showroom.com/eseagency.ch/bagigia.com, no tarjetas discretas); luego una sola
-  imagen a pantalla completa con pin/sticky + zoom por scroll hecho a mano en CSS/JS (funcionaba,
-  pero se abandonó a medio commit cuando el usuario pidió instalar Lenis y luego dijo "detente" para
-  construir él mismo la animación parallax). La versión actual (`ContainerScroll`) es la que el
-  usuario diseñó/encontró y pidió integrar directamente.
-- Quedan sin usar `public/images/table-setup/modern.webp` y `romantic.webp` (de la iteración de 3
-  tarjetas descartada) — pendiente decidir si se borran antes de commitear.
-- Probado en local con `npm run build` y scroll programático en navegador: la animación funciona
-  correctamente extremo a extremo. **Todavía no se ha hecho commit ni push** — sigue como cambios
-  locales sin confirmar.
+### 4. Animaciones de scroll (TableSetup / MesaScroll) — ❌ DESCARTADAS, no están en el sitio
+Entre el 2026-08-03 y 2026-08-04 se intentaron dos animaciones distintas de "toque personal": una
+tarjeta 3D estilo Aceternity UI con `framer-motion` (`TableSetup.jsx`, usaba un componente
+`ContainerScroll` en `src/components/ui/`) y, después, un video de montaje de mesa con
+scroll-scrubbing usando GSAP ScrollTrigger (`MesaScroll.jsx`, estilo página de producto de Apple:
+el video avanza cuadro a cuadro según el scroll). Antes de estas dos también se probaron
+ilustraciones SVG a mano y 3 tarjetas con fotos de IA (ambas rechazadas antes de llegar a
+implementación completa).
+- Ambas versiones finales (`TableSetup`/`ContainerScroll` y `MesaScroll`) se completaron, se
+  depuraron a fondo (bug real de codificación de video con un solo keyframe en todo el clip que
+  causaba scroll trabado y artefactos visuales al saltar de frame; bug de un scrim CSS que
+  técnicamente oscurecía pero se veía como neblina; bug de React StrictMode duplicando el pin de
+  ScrollTrigger; bug de tamaño/padding del botón CTA) y llegaron a desplegarse en producción.
+- El usuario revisó el resultado en vivo y no le convenció ninguna de las dos ("no me está
+  gustando el resultado"), así que pidió eliminarlas por completo — componentes, assets (video,
+  imágenes) y las dependencias `gsap`/`framer-motion` (bundle bajó de ~472KB a ~220KB).
+- El sitio quedó: Hero → Carousel → About → Services → Portfolio → Founder → Team → Testimonials →
+  Calendar → Contact → Footer, sin secciones intermedias de "toque personal".
+- Todo el código, commits y assets siguen en el historial de git (commits del 2026-08-03/04) por si
+  se quiere retomar el concepto más adelante con un enfoque distinto. **Aprendizaje**: a este
+  usuario le convence ver/scrollear una versión funcionando en el navegador antes de dar por buena
+  una idea conceptual — para futuros pedidos de "algo de flair visual", conviene mostrar una
+  preview mínima temprano en vez de invertir varias rondas de arreglo de bugs sobre una versión ya
+  completamente construida.
 
 ### 5. Galería "Momentos que hablan por sí solos" (Portfolio.jsx)
 Curada a mano a partir de ~600 fotos raw (proceso: contact sheets con Python/Pillow local, solo
@@ -131,6 +126,53 @@ para revisión visual — NO es dependencia del proyecto npm).
 - **Propuesta**: sin tocar, sigue con URLs externas de Pixieset (no fue parte del alcance pedido).
 - Quedan 33 fotos de pre-boda sin usar en
   `images/arihannayraymerpreboda-photo-download-1of1/Highlights/` por si se pide más variedad ahí.
+
+## Dominio propio: joyevents.do — ✅ DNS CONFIGURADO (pendiente propagar)
+Configurado el 2026-08-04. El dominio ya estaba comprado por el usuario y ya estaba agregado como
+dominio del proyecto en Vercel (`maxwwelteam/joyevents-rd` → Settings → Domains → `joyevents.do` y
+`www.joyevents.do`, ambos marcados "Production") — solo faltaban los registros DNS del lado del
+registrador para que la validación pasara.
+
+**Registrador**: NIC.do (Network Information Center República Dominicana — el registrador oficial
+de dominios `.do`). Se entra en https://nic.do → iniciar sesión → gestionar `joyevents.do` → DNS
+Records. El panel real de gestión de DNS corre sobre un backend de `myorderbox.com` con URLs que
+incluyen un zone ID y token de sesión (no son estables/reproducibles) — siempre hay que entrar vía
+nic.do, no hay un link directo que se pueda guardar.
+
+**Registros DNS creados** (pestañas "A Records" y "CNAME Records" del panel):
+
+| Tipo  | Host                              | Valor                                  | TTL     |
+|-------|------------------------------------|-----------------------------------------|---------|
+| A     | `@` (raíz — dejar Host Name vacío) | `216.198.79.1`                          | 28800s  |
+| CNAME | `www`                               | `11bde4da462a6529.vercel-dns-017.com`   | 28800s  |
+
+Estos son los valores que Vercel mostraba en ese momento en cada dominio → "View DNS
+configuration". **Importante para el futuro**: la propia UI de Vercel dice "We're expanding our IP
+range" — estos valores pueden cambiar con el tiempo. Si hay que reconfigurar o migrar, **siempre
+volver a sacar los valores vigentes** desde `Vercel → maxwwelteam/joyevents-rd → Settings →
+Domains → [dominio] → View DNS configuration`, no asumir que los de esta tabla siguen siendo
+correctos indefinidamente. Como respaldo, Vercel también acepta los valores "legacy" (siguen
+funcionando aunque no sean los recomendados): A `76.76.21.21` y CNAME `cname.vercel-dns.com`.
+
+**Estado al momento de escribir esto**: los registros se crearon exitosamente en NIC.do (record id
+`166969932` para el A, `166969933` para el CNAME, ambos "Active" en el panel), pero Vercel todavía
+mostraba "Invalid Configuration" en ambos dominios — es normal, la propagación DNS puede tardar de
+minutos a unas horas. Una vez propague, Vercel valida solo y emite el certificado SSL
+automáticamente, sin acción manual adicional. Para chequear manualmente si ya propagó: `dig +short
+joyevents.do A` y `dig +short www.joyevents.do CNAME` desde terminal, o refrescar la página de
+Domains en Vercel (botón "Refresh" junto a cada dominio).
+
+**Si en el futuro se migra el dominio a otra compañía/registrador**:
+1. En el nuevo registrador, recrear los mismos dos registros (A en `@` y CNAME en `www`) apuntando
+   a los valores vigentes que muestre Vercel en ese momento (ver nota arriba, no usar los de esta
+   tabla sin confirmar primero).
+2. En esta configuración **no se tocaron los nameservers** de `joyevents.do` — se dejaron los
+   registros DNS apuntando directo a Vercel sin cambiar de nameserver ni de registrador. Si la
+   migración es solo "mover a otro registrador" (no solo cambiar dónde apunta el DNS), es un
+   trámite aparte vía código de autorización/EPP, distinto a simplemente recrear estos registros.
+3. Si en algún momento se deja de usar Vercel como hosting, hay que: (a) actualizar/borrar estos
+   registros para que apunten al nuevo hosting, y (b) quitar el dominio de `Vercel → Settings →
+   Domains` en ese proyecto para liberar el dominio y su certificado SSL ahí.
 
 ## Configuración en Vercel (env vars) — ✅ TODAS CONFIGURADAS
 El sitio corre en producción con credenciales reales (ya no está en modo degradado). Variables
@@ -174,9 +216,7 @@ Cuenta de servicio de Google Cloud: proyecto `joy-events-rd`, cuenta de servicio
 ## Tareas pendientes / próximos pasos
 1. Confirmar con el usuario si tiene fotos de **Post Boda** en algún otro lugar (USB, carpeta,
    link externo) para completar esa categoría de la galería.
-2. Cuando el usuario tenga presupuesto, conectar el dominio `joyevents.do` en Vercel
-   (Project → Domains).
+2. Confirmar que `joyevents.do`/`www.joyevents.do` terminaron de propagar y que Vercel los marcó
+   "Valid Configuration" (ver sección "Dominio propio: joyevents.do" para cómo chequear).
 3. Actualizar `src/holidays.js` (`DR_HOLIDAYS`) con el calendario oficial de feriados 2027 del
    Ministerio de Trabajo cuando se publique (normalmente a fines de 2026).
-4. Decidir sobre `modern.webp`/`romantic.webp` sin usar y hacer commit de la animación
-   "El Montaje Perfecto" (sección 4) — pedir confirmación antes de push, como siempre.
