@@ -3,6 +3,7 @@ import { sendMail } from './_lib/mailer.js'
 import { getAvailability, holdSlot, releaseSlot } from './_lib/scheduling.js'
 import { SLOTS } from '../src/slots.js'
 import { escapeHtml } from './_lib/html.js'
+import { checkRateLimit } from './_lib/rateLimit.js'
 
 function baseUrl(req) {
   const proto = req.headers['x-forwarded-proto'] || 'https'
@@ -19,6 +20,13 @@ const REASON_MESSAGES = {
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.status(405).json({ error: 'Método no permitido.' })
+    return
+  }
+
+  const { limited, retryAfterSeconds } = checkRateLimit(req)
+  if (limited) {
+    res.setHeader('Retry-After', String(retryAfterSeconds))
+    res.status(429).json({ error: 'Demasiadas solicitudes. Intenta de nuevo en unos minutos o escríbenos por WhatsApp.' })
     return
   }
 
