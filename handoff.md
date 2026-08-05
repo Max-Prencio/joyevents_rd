@@ -1,15 +1,15 @@
 # Joy Events RD — Handoff / Memoria de proyecto
 
-Última actualización: 2026-08-04
+Última actualización: 2026-08-05
 
 ## Resumen del proyecto
 Sitio web de Joy Events RD (planificación de bodas), migrado de un HTML monolítico a
 Vite + React + Tailwind CSS. Desplegado en producción en Vercel:
 - URL estable: https://joyevents-rd.vercel.app
+- Dominio propio: **https://joyevents.do** (y `www.`) — ✅ en vivo desde el 2026-08-05, ver sección
+  "Dominio propio: joyevents.do" más abajo para el detalle completo de la configuración.
 - Repo: https://github.com/Max-Prencio/joyevents_rd.git (branch `main`)
 - Proyecto Vercel: `maxwwelteam/joyevents-rd` (auto-deploy on push a `main` vía integración GitHub)
-- Dominio propio: `joyevents.do` — comprado por el usuario, DNS configurado el 2026-08-04 (ver
-  sección "Dominio propio: joyevents.do" más abajo para el detalle completo de la configuración).
 
 ## Contacto del negocio
 - Teléfono/WhatsApp oficial: **+1 (809) 360-8567**
@@ -127,10 +127,19 @@ para revisión visual — NO es dependencia del proyecto npm).
 - Quedan 33 fotos de pre-boda sin usar en
   `images/arihannayraymerpreboda-photo-download-1of1/Highlights/` por si se pide más variedad ahí.
 
-## Dominio propio: joyevents.do — ⚠️ BLOQUEADO por delegación DNS rota (no es cosa nuestra)
-Iniciado el 2026-08-04. El dominio ya estaba comprado por el usuario y ya estaba agregado como
-dominio del proyecto en Vercel (`maxwwelteam/joyevents-rd` → Settings → Domains → `joyevents.do` y
-`www.joyevents.do`, ambos marcados "Production").
+## Dominio propio: joyevents.do — ✅ RESUELTO, EN VIVO (2026-08-05)
+Iniciado el 2026-08-04, resuelto el 2026-08-05. `https://joyevents.do` y `https://www.joyevents.do`
+cargan el sitio con SSL válido (verificado con `curl -sI`, código 200, headers de seguridad
+presentes) y Vercel dejó de mostrar "Invalid Configuration" en Settings → Domains. El "lame
+delegation" que bloqueó todo durante ~24-36h se resolvió del lado de NIC.do — el usuario hizo un
+ajuste adicional en el panel que no estaba documentado en esta sesión (dijo "te faltó una
+configuración, por eso no subía"); si se vuelve a tocar este dominio en el futuro, preguntarle a él
+qué paso exacto hizo falta, porque no quedó capturado acá. Se dejó toda la bitácora del diagnóstico
+abajo por si sirve de referencia ante un problema similar en otro dominio `.do`.
+
+El dominio ya estaba comprado por el usuario y ya estaba agregado como dominio del proyecto en
+Vercel (`maxwwelteam/joyevents-rd` → Settings → Domains → `joyevents.do` y `www.joyevents.do`,
+ambos marcados "Production").
 
 **Registrador**: NIC.do (Network Information Center República Dominicana — el registrador oficial
 de dominios `.do`). Tiene DOS paneles distintos, fácil confundirlos:
@@ -245,9 +254,8 @@ Cuenta de servicio de Google Cloud: proyecto `joy-events-rd`, cuenta de servicio
 ## Tareas pendientes / próximos pasos
 1. Confirmar con el usuario si tiene fotos de **Post Boda** en algún otro lugar (USB, carpeta,
    link externo) para completar esa categoría de la galería.
-2. Revisar si ya sincronizó la delegación de nameservers de `joyevents.do` (ver sección "Dominio
-   propio: joyevents.do" — problema de "lame delegation" en el registro `.do`, no es algo que se
-   arregle desde nuestro lado, solo monitorear y escalar a soporte de NIC.do si sigue igual pasadas
-   48h desde el 2026-08-04).
-3. Actualizar `src/holidays.js` (`DR_HOLIDAYS`) con el calendario oficial de feriados 2027 del
+2. Actualizar `src/holidays.js` (`DR_HOLIDAYS`) con el calendario oficial de feriados 2027 del
    Ministerio de Trabajo cuando se publique (normalmente a fines de 2026).
+3. Rate limiting actual en `/api/request-call` es en memoria (best-effort, ver
+   `api/_lib/rateLimit.js`) — si el tráfico crece o se detecta abuso real, considerar migrar a algo
+   persistente (ej. Upstash Redis vía integración de Vercel) en vez del limitador en memoria actual.
