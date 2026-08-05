@@ -127,52 +127,81 @@ para revisión visual — NO es dependencia del proyecto npm).
 - Quedan 33 fotos de pre-boda sin usar en
   `images/arihannayraymerpreboda-photo-download-1of1/Highlights/` por si se pide más variedad ahí.
 
-## Dominio propio: joyevents.do — ✅ DNS CONFIGURADO (pendiente propagar)
-Configurado el 2026-08-04. El dominio ya estaba comprado por el usuario y ya estaba agregado como
+## Dominio propio: joyevents.do — ⚠️ BLOQUEADO por delegación DNS rota (no es cosa nuestra)
+Iniciado el 2026-08-04. El dominio ya estaba comprado por el usuario y ya estaba agregado como
 dominio del proyecto en Vercel (`maxwwelteam/joyevents-rd` → Settings → Domains → `joyevents.do` y
-`www.joyevents.do`, ambos marcados "Production") — solo faltaban los registros DNS del lado del
-registrador para que la validación pasara.
+`www.joyevents.do`, ambos marcados "Production").
 
 **Registrador**: NIC.do (Network Information Center República Dominicana — el registrador oficial
-de dominios `.do`). Se entra en https://nic.do → iniciar sesión → gestionar `joyevents.do` → DNS
-Records. El panel real de gestión de DNS corre sobre un backend de `myorderbox.com` con URLs que
-incluyen un zone ID y token de sesión (no son estables/reproducibles) — siempre hay que entrar vía
-nic.do, no hay un link directo que se pueda guardar.
+de dominios `.do`). Tiene DOS paneles distintos, fácil confundirlos:
+- **`cp.midominio.do`** (Client Panel / "Manage Domain"): acá vive la gestión real del dominio —
+  contacto, **Nombre de Servidores (nameservers)**, transferencia, protección. Se entra desde
+  nic.do → iniciar sesión → "Mi Cuenta" o similar.
+- Un backend separado en `myorderbox.com` (subdominio con zone ID, ej.
+  `15075982.dns.bll.myorderbox.com`) que expone una sección "DNS Records" (A/AAAA/CNAME/MX/TXT/etc)
+  — pero **esto solo importa si el dominio usa DNS externo**. Si el dominio está delegado a
+  nameservers de Vercel (que es el caso acá, ver abajo), esta sección queda **sin efecto**: se
+  puede editar todo lo que se quiera ahí que no cambia nada en cómo resuelve el dominio realmente.
 
-**Registros DNS creados** (pestañas "A Records" y "CNAME Records" del panel):
+**Lo que se intentó primero (2026-08-04, sesión temprana) — quedó obsoleto**: se asumió que el
+dominio usaba "DNS externo" y se crearon manualmente, en el panel de `myorderbox.com` → DNS
+Records, un registro A (`@` → `216.198.79.1`) y un CNAME (`www` → `11bde4da462a6529.vercel-
+dns-017.com`, ambos son los valores que en ese momento mostraba Vercel en "View DNS
+configuration"). **Estos registros siguen ahí pero no hacen nada** — ver el hallazgo siguiente.
 
-| Tipo  | Host                              | Valor                                  | TTL     |
-|-------|------------------------------------|-----------------------------------------|---------|
-| A     | `@` (raíz — dejar Host Name vacío) | `216.198.79.1`                          | 28800s  |
-| CNAME | `www`                               | `11bde4da462a6529.vercel-dns-017.com`   | 28800s  |
+**Hallazgo real (misma sesión, más tarde)**: al revisar `cp.midominio.do` → "Nombre de Servidores"
+se descubrió que el dominio en realidad está configurado en modo **"Vercel Nameservers"** (nameserver
+delegation completa), no en modo DNS externo:
+- Nameserver 1: `ns1.vercel-dns.com`
+- Nameserver 2: `ns2.vercel-dns.com`
 
-Estos son los valores que Vercel mostraba en ese momento en cada dominio → "View DNS
-configuration". **Importante para el futuro**: la propia UI de Vercel dice "We're expanding our IP
-range" — estos valores pueden cambiar con el tiempo. Si hay que reconfigurar o migrar, **siempre
-volver a sacar los valores vigentes** desde `Vercel → maxwwelteam/joyevents-rd → Settings →
-Domains → [dominio] → View DNS configuration`, no asumir que los de esta tabla siguen siendo
-correctos indefinidamente. Como respaldo, Vercel también acepta los valores "legacy" (siguen
-funcionando aunque no sean los recomendados): A `76.76.21.21` y CNAME `cname.vercel-dns.com`.
+Estos valores **ya estaban guardados correctamente** — al intentar "actualizar" el sistema devolvió
+`"Same value for new and old NameServers"`, confirmando que no había nada pendiente de guardar de
+ese lado. En este modo, Vercel es quien maneja TODO el DNS del dominio automáticamente (no hace
+falta ni se debe tocar A/CNAME/etc a mano en ningún panel — por eso los registros de la sección
+anterior no sirven de nada, están en una zona que ya no es la autoridad real del dominio).
 
-**Estado al momento de escribir esto**: los registros se crearon exitosamente en NIC.do (record id
-`166969932` para el A, `166969933` para el CNAME, ambos "Active" en el panel), pero Vercel todavía
-mostraba "Invalid Configuration" en ambos dominios — es normal, la propagación DNS puede tardar de
-minutos a unas horas. Una vez propague, Vercel valida solo y emite el certificado SSL
-automáticamente, sin acción manual adicional. Para chequear manualmente si ya propagó: `dig +short
-joyevents.do A` y `dig +short www.joyevents.do CNAME` desde terminal, o refrescar la página de
-Domains en Vercel (botón "Refresh" junto a cada dominio).
+**El problema real**: a pesar de que `cp.midominio.do` tiene guardado `ns1/ns2.vercel-dns.com`, al
+consultar la delegación pública real del dominio (`dns.google/resolve?name=joyevents.do&type=NS`,
+también confirmado con `dig` — aunque `dig` directo no funcionó bien desde este entorno de trabajo,
+sí funcionó vía la API HTTP de Google DNS) el registro `.do` todavía devuelve una delegación a dos
+IPs distintas y viejas: **`198.51.44.13`** y **`198.51.45.13`**, y ambas devuelven **`REFUSED`** a
+cualquier consulta ("lame delegation"). O sea: hay un desfase entre lo que el panel del registrador
+tiene guardado (`ns1/ns2.vercel-dns.com`, correcto) y lo que el registro `.do` publica realmente
+(las IPs viejas, rotas). Esto **no se arregla desde ningún botón de los paneles que revisamos** —
+es una sincronización pendiente entre `midominio.do`/NIC.do y el registro `.do`, probablemente más
+lenta por ser un ccTLD dominicano (a diferencia de la propagación normal de registros DNS, que
+tarda minutos/horas, un cambio de nameservers a nivel de registro puede tardar hasta 24-48h). El
+dominio muestra fecha de registro/renovación "August 4, 2026 – August 4, 2027", coincidiendo con el
+inicio de esta configuración, lo que es consistente con esa hipótesis.
 
-**Si en el futuro se migra el dominio a otra compañía/registrador**:
-1. En el nuevo registrador, recrear los mismos dos registros (A en `@` y CNAME en `www`) apuntando
-   a los valores vigentes que muestre Vercel en ese momento (ver nota arriba, no usar los de esta
-   tabla sin confirmar primero).
-2. En esta configuración **no se tocaron los nameservers** de `joyevents.do` — se dejaron los
-   registros DNS apuntando directo a Vercel sin cambiar de nameserver ni de registrador. Si la
-   migración es solo "mover a otro registrador" (no solo cambiar dónde apunta el DNS), es un
-   trámite aparte vía código de autorización/EPP, distinto a simplemente recrear estos registros.
-3. Si en algún momento se deja de usar Vercel como hosting, hay que: (a) actualizar/borrar estos
-   registros para que apunten al nuevo hosting, y (b) quitar el dominio de `Vercel → Settings →
-   Domains` en ese proyecto para liberar el dominio y su certificado SSL ahí.
+**Cómo volver a chequear** (sin necesitar login, vía API HTTP, útil porque `dig`/`nslookup` directo
+no fueron confiables en el entorno de trabajo de Claude): abrir en el navegador o pedirle a Claude
+que haga fetch a:
+```
+https://dns.google/resolve?name=joyevents.do&type=NS
+```
+Si devuelve `"Status":0` con un `"Answer"` listando `ns1.vercel-dns.com`/`ns2.vercel-dns.com` (en
+vez de `"Status":2"` con el comentario de "lame delegation"), ya sincronizó — ahí Vercel debería
+marcar el dominio como "Valid Configuration" solo, sin acción manual adicional (emite SSL automático).
+
+**Si en 48h desde el 2026-08-04 sigue igual**: contactar soporte de NIC.do (809-535-0111 /
+809-580-1962 ext. 2052-2055, o info@nic.do) y reportar textualmente: *"joyevents.do muestra lame
+delegation — el registro .do devuelve 198.51.44.13 y 198.51.45.13 (REFUSED) en vez de los
+nameservers que tengo guardados en el panel (ns1.vercel-dns.com / ns2.vercel-dns.com)"*.
+
+**Nota para el futuro / si se migra**: como el dominio usa Vercel Nameservers (no DNS externo), una
+migración de hosting (dejar de usar Vercel) o de registrador son dos cosas independientes:
+- Dejar de usar Vercel como hosting: cambiar los nameservers en `cp.midominio.do` a los del nuevo
+  proveedor (o volver a DNS externo con A/CNAME manuales apuntando al nuevo host), y quitar el
+  dominio de `Vercel → Settings → Domains`.
+- Migrar de registrador (de NIC.do a otro): trámite de transferencia vía código de autorización/EPP,
+  no relacionado a esto. Los nameservers (`ns1/ns2.vercel-dns.com`) normalmente se mantienen igual
+  después de una transferencia de registrador, ya que la delegación de nameservers y el registrador
+  del dominio son conceptos distintos.
+- Los registros A/CNAME creados en el panel `myorderbox.com` (DNS Records) el 2026-08-04 pueden
+  ignorarse/quedan huérfanos mientras el dominio siga en modo Vercel Nameservers — no hace falta
+  borrarlos activamente, simplemente no tienen efecto.
 
 ## Configuración en Vercel (env vars) — ✅ TODAS CONFIGURADAS
 El sitio corre en producción con credenciales reales (ya no está en modo degradado). Variables
@@ -216,7 +245,9 @@ Cuenta de servicio de Google Cloud: proyecto `joy-events-rd`, cuenta de servicio
 ## Tareas pendientes / próximos pasos
 1. Confirmar con el usuario si tiene fotos de **Post Boda** en algún otro lugar (USB, carpeta,
    link externo) para completar esa categoría de la galería.
-2. Confirmar que `joyevents.do`/`www.joyevents.do` terminaron de propagar y que Vercel los marcó
-   "Valid Configuration" (ver sección "Dominio propio: joyevents.do" para cómo chequear).
+2. Revisar si ya sincronizó la delegación de nameservers de `joyevents.do` (ver sección "Dominio
+   propio: joyevents.do" — problema de "lame delegation" en el registro `.do`, no es algo que se
+   arregle desde nuestro lado, solo monitorear y escalar a soporte de NIC.do si sigue igual pasadas
+   48h desde el 2026-08-04).
 3. Actualizar `src/holidays.js` (`DR_HOLIDAYS`) con el calendario oficial de feriados 2027 del
    Ministerio de Trabajo cuando se publique (normalmente a fines de 2026).
