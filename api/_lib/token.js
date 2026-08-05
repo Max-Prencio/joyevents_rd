@@ -17,7 +17,11 @@ export function createToken(data) {
 export function verifyToken(token) {
   if (!token || !token.includes('.')) return null
   const [payloadB64, signature] = token.split('.')
-  if (sign(payloadB64) !== signature) return null
+  const expected = sign(payloadB64)
+  const expectedBuf = Buffer.from(expected)
+  const signatureBuf = Buffer.from(signature)
+  if (expectedBuf.length !== signatureBuf.length) return null
+  if (!crypto.timingSafeEqual(expectedBuf, signatureBuf)) return null
   const payload = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf8'))
   if (Date.now() > payload.exp) return null
   return payload

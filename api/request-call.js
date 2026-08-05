@@ -2,6 +2,7 @@ import { createToken } from './_lib/token.js'
 import { sendMail } from './_lib/mailer.js'
 import { getAvailability, holdSlot, releaseSlot } from './_lib/scheduling.js'
 import { SLOTS } from '../src/slots.js'
+import { escapeHtml } from './_lib/html.js'
 
 function baseUrl(req) {
   const proto = req.headers['x-forwarded-proto'] || 'https'
@@ -71,13 +72,13 @@ export default async function handler(req, res) {
       html: `
         <div style="font-family:sans-serif;max-width:520px;margin:auto;">
           <h2 style="color:#F7890F;">Nueva solicitud de consulta</h2>
-          <p><strong>Nombre:</strong> ${nombre}</p>
-          <p><strong>Email:</strong> ${email}</p>
-          <p><strong>WhatsApp:</strong> ${whatsapp || 'No especificado'}</p>
-          <p><strong>Tipo de evento:</strong> ${tipo || 'No especificado'}</p>
-          <p><strong>Fecha/hora solicitada:</strong> ${fechaConsulta}</p>
-          <p><strong>Fecha estimada del evento:</strong> ${fechaEvento || 'Por definir'}</p>
-          <p><strong>Mensaje:</strong> ${mensaje || '—'}</p>
+          <p><strong>Nombre:</strong> ${escapeHtml(nombre)}</p>
+          <p><strong>Email:</strong> ${escapeHtml(email)}</p>
+          <p><strong>WhatsApp:</strong> ${escapeHtml(whatsapp) || 'No especificado'}</p>
+          <p><strong>Tipo de evento:</strong> ${escapeHtml(tipo) || 'No especificado'}</p>
+          <p><strong>Fecha/hora solicitada:</strong> ${escapeHtml(fechaConsulta)}</p>
+          <p><strong>Fecha estimada del evento:</strong> ${escapeHtml(fechaEvento) || 'Por definir'}</p>
+          <p><strong>Mensaje:</strong> ${escapeHtml(mensaje) || '—'}</p>
           <div style="margin-top:24px;">
             <a href="${acceptUrl}" style="background:#F7890F;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;margin-right:12px;">Aceptar llamada</a>
             <a href="${declineUrl}" style="background:#eee;color:#333;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;">Rechazar</a>

@@ -3,6 +3,7 @@ import { sendMail } from './_lib/mailer.js'
 import { createCalendarEvent } from './_lib/calendar.js'
 import { confirmSlot, releaseSlot } from './_lib/scheduling.js'
 import { CONTACT_PHONE } from './_lib/constants.js'
+import { escapeHtml } from './_lib/html.js'
 
 function page(title, body) {
   return `
@@ -34,6 +35,8 @@ export default async function handler(req, res) {
 
   const { nombre, email, whatsapp, tipo, fechaConsulta, fechaISO, hora, mensaje, calendarEventId } = payload
   const accepted = decision === 'accept'
+  const nombreSafe = escapeHtml(nombre)
+  const fechaConsultaSafe = escapeHtml(fechaConsulta)
 
   try {
     await sendMail({
@@ -44,15 +47,15 @@ export default async function handler(req, res) {
       html: accepted
         ? `
           <div style="font-family:sans-serif;max-width:520px;margin:auto;">
-            <h2 style="color:#F7890F;">¡Hola ${nombre}! 🎉</h2>
-            <p>Tu llamada fue <strong>aprobada</strong> para el <strong>${fechaConsulta}</strong>.</p>
+            <h2 style="color:#F7890F;">¡Hola ${nombreSafe}! 🎉</h2>
+            <p>Tu llamada fue <strong>aprobada</strong> para el <strong>${fechaConsultaSafe}</strong>.</p>
             <p>Nos pondremos en contacto contigo. Para más información contáctanos al <strong>${CONTACT_PHONE}</strong>.</p>
           </div>
         `
         : `
           <div style="font-family:sans-serif;max-width:520px;margin:auto;">
-            <h2 style="color:#F7890F;">Hola ${nombre}</h2>
-            <p>Lamentablemente no podemos confirmar tu llamada para el <strong>${fechaConsulta}</strong>.</p>
+            <h2 style="color:#F7890F;">Hola ${nombreSafe}</h2>
+            <p>Lamentablemente no podemos confirmar tu llamada para el <strong>${fechaConsultaSafe}</strong>.</p>
             <p>Por favor elige otro horario en nuestra página, o contáctanos directamente al <strong>${CONTACT_PHONE}</strong> para coordinar.</p>
           </div>
         `,
@@ -86,8 +89,8 @@ export default async function handler(req, res) {
 
     res.status(200).send(
       accepted
-        ? page('Llamada aceptada ✓', `Se le notificó a ${nombre} que su llamada del ${fechaConsulta} fue aprobada.`)
-        : page('Solicitud rechazada', `Se le notificó a ${nombre} que no fue posible confirmar su llamada del ${fechaConsulta}.`)
+        ? page('Llamada aceptada ✓', `Se le notificó a ${nombreSafe} que su llamada del ${fechaConsultaSafe} fue aprobada.`)
+        : page('Solicitud rechazada', `Se le notificó a ${nombreSafe} que no fue posible confirmar su llamada del ${fechaConsultaSafe}.`)
     )
   } catch (err) {
     console.error('Error notificando al solicitante:', err)
