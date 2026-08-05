@@ -141,6 +141,14 @@ El dominio ya estaba comprado por el usuario y ya estaba agregado como dominio d
 Vercel (`maxwwelteam/joyevents-rd` → Settings → Domains → `joyevents.do` y `www.joyevents.do`,
 ambos marcados "Production").
 
+**Guía general reutilizable**: se armó una referencia aparte (no específica de este proyecto) con
+el paso a paso de NIC.do, qué significa cada campo de sus formularios, y los dos modos de conexión
+(nameservers delegados vs. DNS externo) en
+`/Users/maxwelalexanderprenciomartinez/Documents/web project/confdomi/nic.do/nic-do.md`. Esa
+carpeta `confdomi/` es para ir guardando ahí la config de cada empresa de dominios que se use
+(una carpeta por empresa) — consultarla antes de configurar cualquier dominio nuevo, sea de este
+proyecto o de otro.
+
 **Registrador**: NIC.do (Network Information Center República Dominicana — el registrador oficial
 de dominios `.do`). Tiene DOS paneles distintos, fácil confundirlos:
 - **`cp.midominio.do`** (Client Panel / "Manage Domain"): acá vive la gestión real del dominio —
@@ -154,9 +162,19 @@ de dominios `.do`). Tiene DOS paneles distintos, fácil confundirlos:
 
 **Lo que se intentó primero (2026-08-04, sesión temprana) — quedó obsoleto**: se asumió que el
 dominio usaba "DNS externo" y se crearon manualmente, en el panel de `myorderbox.com` → DNS
-Records, un registro A (`@` → `216.198.79.1`) y un CNAME (`www` → `11bde4da462a6529.vercel-
-dns-017.com`, ambos son los valores que en ese momento mostraba Vercel en "View DNS
-configuration"). **Estos registros siguen ahí pero no hacen nada** — ver el hallazgo siguiente.
+Records, un registro A y un CNAME (los valores que en ese momento mostraba Vercel en "View DNS
+configuration"). **Estos registros siguen ahí pero no hacen nada** (zona huérfana, ver hallazgo
+siguiente) — valores actuales confirmados por captura de pantalla del panel (2026-08-05):
+
+| Registro | Zone id | Record Id | Name | Status | Value | TTL |
+|---|---|---|---|---|---|---|
+| A | 15075982 | 166969932 | `joyevents.do` | Active | `216.198.79.1` | 172800 |
+| CNAME | 15075982 | 166969933 | `www.joyevents.do` | Active | `cname.vercel-dns.com` | 172800 |
+
+(El CNAME quedó con el valor "legacy" `cname.vercel-dns.com` en vez del valor específico por
+proyecto que se había cargado originalmente — probablemente se editó en algún momento durante el
+troubleshooting. No importa cuál de los dos tenga, ya que esta zona no tiene efecto real mientras
+el dominio siga en modo nameservers delegados.)
 
 **Hallazgo real (misma sesión, más tarde)**: al revisar `cp.midominio.do` → "Nombre de Servidores"
 se descubrió que el dominio en realidad está configurado en modo **"Vercel Nameservers"** (nameserver
